@@ -151,6 +151,7 @@ local Overrides = {
 				local game = GAMESTATE:GetCurrentGame():GetName()
 
 				-- Apologies, midiman. :(
+				-- Most of these are StepMania 5 stock note skins
 				local stock = {
 					dance = {
 						"default", "delta", "easyv2", "exactv2", "lambda", "midi-note",
@@ -171,34 +172,6 @@ local Overrides = {
 						"default"
 					}
 				}
-
-				-- additional OutFox stock note skins
-				if IsOutFox() then
-					local stockOutfox = {
-						dance = {
-							"defaultsm5", "delta2019", "outfox-itg", "outfox-note",
-							"paw"
-						},
-						pump = {
-							"defaultsm5", "pawprint", "rhythmsm5"
-						},
-						global = {
-							"broadhead", "crystal", "crystal4k", "exact3d", "fourv2",
-							"glider-note", "paws", "shadowtip"
-						}
-					}
-
-					if stockOutfox[game] then
-						for name in ivalues(stockOutfox[game]) do
-							table.insert(stock[game], name)
-						end
-					end
-					if stock[game] then
-						for name in ivalues(stockOutfox.global) do
-							table.insert(stock[game], name)
-						end
-					end
-				end
 
 				if stock[game] then
 					for stock_noteskin in ivalues(stock[game]) do
@@ -244,6 +217,47 @@ local Overrides = {
 		end
 	},
 	-------------------------------------------------------------------------
+	HeldGraphic = {
+
+
+		LayoutType = "ShowOneInRow",
+
+
+		ExportOnChange = true,
+
+
+		Choices = function() return map(StripSpriteHints, GetHeldMissGraphics()) end,
+
+
+		Values = function() return GetHeldMissGraphics() end,
+
+
+		SaveSelections = function(self, list, pn)
+
+
+			local mods = SL[ToEnumShortString(pn)].ActiveModifiers
+
+
+			for i, val in ipairs(self.Values) do
+
+
+				if list[i] then mods.HeldGraphic = val; break end
+
+
+			end
+
+
+			-- Broadcast a message that ./Graphics/OptionRow Frame.lua will be listening for so it can change the Judgment preview
+
+
+			MESSAGEMAN:Broadcast("RefreshActorProxy", {Player=pn, Name="HeldGraphic", Value=StripSpriteHints(mods.HeldGraphic)})
+
+
+		end
+
+
+	},
+	--------------------------------------------------------------
 	HoldJudgment = {
 		LayoutType = "ShowOneInRow",
 		ExportOnChange = true,
@@ -520,12 +534,8 @@ local Overrides = {
 			local IsUltraWide = (GetScreenAspectRatio() > 21/9)
 			local mpn = GAMESTATE:GetMasterPlayerNumber()
 
-			-- Never available in double
-			if style and style:GetName() == "double"
-			-- In 4:3 versus mode
-			or (not IsUsingWideScreen() and style and style:GetName() == "versus")
-			-- if the notefield takes up more than half the screen width
-			or (notefieldwidth and notefieldwidth > _screen.w/2)
+			-- Not in 4:3 versus mode
+			if (not IsUsingWideScreen() and style and style:GetName() == "versus")
 			-- if the notefield is centered with 4:3 aspect ratio
 			or (mpn and GetNotefieldX(mpn) == _screen.cx and not IsUsingWideScreen())
 			-- Tournament Mode always enforces whether to display/hide step stats so remove that as an option.
@@ -536,6 +546,10 @@ local Overrides = {
 
 			return choices
 		end,
+	},
+	-------------------------------------------------------------------------
+	StepStatsExtra = {
+		Values = { "None", "CatJAM", "Rin Cat", "Reimu", "Misato", "Internet Yamero", "Dancing Duck", "AmongUs"}
 	},
 	-------------------------------------------------------------------------
 	TargetScore = {
@@ -584,13 +598,13 @@ local Overrides = {
 		Values = function()
 			local vals = {}
 			if IsUsingWideScreen() then
-				vals = { "JudgmentTilt", "ColumnCues" }
+				vals = { "JudgmentTilt", "ColumnCues", "ShowHeldMiss" }
 				if IsServiceAllowed(SL.GrooveStats.GetScores) then
 					vals[#vals+1] = "DisplayScorebox"
 				end
 			else
 				-- Add in the two removed options if not in WideScreen.
-				vals = { "NPSGraphAtTop", "JudgmentTilt", "ColumnCues" }
+				vals = { "NPSGraphAtTop", "JudgmentTilt", "ColumnCues", "ShowHeldMiss" }
 			end
 			return vals
 		end
@@ -605,9 +619,36 @@ local Overrides = {
 			return vals
 		end
 	},
+	TiltMultiplier = {
+		Choices = function()
+			local first	= 1
+			local last 	= 3
+			local step 	= 0.5
+
+			return stringify(range(first, last, step), "%g")
+		end,
+		LoadSelections = function(self, list, pn)
+			local mods =SL[ToEnumShortString(pn)].ActiveModifiers
+			local tiltMultiplier = ("%g"):format(mods.TiltMultiplier)
+			local i = FindInTable(tiltMultiplier, self.Choices) or 1
+			list[i] = true
+			return list
+		end,
+		SaveSelections = function(self, list, pn)
+			local mods =SL[ToEnumShortString(pn)].ActiveModifiers
+
+			for i=1,#self.Choices do
+				if list[i] then
+					mods.TiltMultiplier = tonumber( self.Choices[i] )
+				end
+			end
+		end
+	},
+	-------------------------------------------------------------------------
 	ErrorBar = {
 		Values = { "None", "Colorful", "Monochrome", "Text" },
-	},-------------------------------------------------------------------------
+	},
+	-------------------------------------------------------------------------
 	ErrorBarTrim = {
 		Values = { "Off", "Great", "Excellent" },
 		Choices = function()
@@ -629,6 +670,36 @@ local Overrides = {
 	MeasureCounterOptions = {
 		SelectType = "SelectMultiple",
 		Values = { "MeasureCounterLeft", "MeasureCounterUp", "HideLookahead" },
+	},
+	-------------------------------------------------------------------------
+	MeasureLines = {
+		Values = { "Off", "Measure", "Quarter", "Eighth" },
+	},
+	-------------------------------------------------------------------------
+	VisualDelay = {
+		Choices = function()
+			local first	= -100
+			local last 	= 100
+			local step 	= 1
+			return stringify( range(first, last, step), "%gms")
+		end,
+		ExportOnChange = true,
+		LayoutType = "ShowOneInRow",
+		SaveSelections = function(self, list, pn)
+			local mods, playeroptions = GetModsAndPlayerOptions(pn)
+
+			for i=1,#self.Choices do
+				if list[i] then
+					mods.VisualDelay = self.Choices[i]
+				end
+			end
+			playeroptions:VisualDelay( mods.VisualDelay:gsub("ms","")/1000 )
+		end
+	},
+	-------------------------------------------------------------------------
+	TimingWindowOptions = {
+		SelectType = "SelectMultiple",
+		Values = { "HideEarlyDecentWayOffJudgments", "HideEarlyDecentWayOffFlash" }
 	},
 	-------------------------------------------------------------------------
 	TimingWindows = {
@@ -654,29 +725,50 @@ local Overrides = {
 			t[idx] = THEME:GetString(tns,"W1").."s + "..THEME:GetString(tns,"W2").."s"
 			return t
 		end,
-		OneChoiceForAllPlayers = true,
 		LoadSelections = function(self, list, pn)
-			local windows = SL.Global.ActiveModifiers.TimingWindows
+			local mods, playeroptions = GetModsAndPlayerOptions(pn)
+
+			-- First determine the set of actual enabled windows.
+			local windows = {true,true,true,true,true}
+			local disabledWindows = playeroptions:GetDisabledTimingWindows()
+			for w in ivalues(disabledWindows) do
+				windows[tonumber(ToEnumShortString(w):sub(-1))] = false
+			end
+
+			-- Compare them to any of our available selections
+			local matched = false
 			for i=1,#list do
 				local all_match = true
 				for w,window in ipairs(windows) do
 					if window ~= self.Values[i][w] then all_match = false; break end
 				end
-				if all_match then list[i] = true; break end
+				if all_match then
+					matched = true
+					list[i] = true
+					mods.TimingWindows = windows
+					break
+				end
+			end
+
+			-- It's possible one may have manipulated the available windows through playeroptions elsewhere.
+			-- If the TimingWindows set via LoadSelections is not one of our valid choices then default
+			-- to a known value (all windows enabled).
+			if not matched then
+				mods.TimingWindows = {true,true,true,true,true}
+				playeroptions:ResetDisabledTimingWindows()
+				list[1] = true
 			end
 			return list
 		end,
 		SaveSelections = function(self, list, pn)
-			local gmods = SL.Global.ActiveModifiers
+			local mods, playeroptions = GetModsAndPlayerOptions(pn)
 			for i=1,#list do
 				if list[i] then
-					gmods.TimingWindows = self.Values[i]
-					for w=1,NumJudgmentsAvailable() do
-						if self.Values[i][w] then
-							PREFSMAN:SetPreference("TimingWindowSecondsW"..w, SL.Preferences[SL.Global.GameMode]["TimingWindowSecondsW"..w])
-						else
-							local prev = (w > 1 and PREFSMAN:GetPreference("TimingWindowSecondsW"..(w-1)) or -math.abs(SL.Preferences[SL.Global.GameMode].TimingWindowAdd))
-							PREFSMAN:SetPreference("TimingWindowSecondsW"..w, prev)
+					mods.TimingWindows = self.Values[i]
+					playeroptions:ResetDisabledTimingWindows()
+					for i,enabled in ipairs(mods.TimingWindows) do
+						if not enabled then
+							playeroptions:DisableTimingWindow("TimingWindow_W"..i)
 						end
 					end
 				end
@@ -746,6 +838,21 @@ local Overrides = {
 	-------------------------------------------------------------------------
 	LifeMeterType = {
 		Values = { "Standard", "Surround", "Vertical" },
+	},
+	-------------------------------------------------------------------------
+	Vocalization = {
+		Choices = function()
+			-- Allow users to arbitrarily add new vocalizations to ./Simply Love/Other/Vocalize/
+			-- and have those vocalizations be automatically detected
+			local vocalizations = FILEMAN:GetDirListing(THEME:GetCurrentThemeDirectory().."/Other/Vocalize/" , true, false)
+			table.insert(vocalizations, 1, "None")
+
+			if #vocalizations > 1 then
+				vocalizations[#vocalizations+1] = "Random"
+				vocalizations[#vocalizations+1] = "Blender"
+			end
+			return vocalizations
+		end
 	},
 	-------------------------------------------------------------------------
 	ScreenAfterPlayerOptions = {

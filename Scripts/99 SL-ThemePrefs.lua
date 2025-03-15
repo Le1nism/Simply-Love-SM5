@@ -16,26 +16,17 @@ end
 
 SL_CustomPrefs.Get = function()
 	 -- emojis are our lingua franca for the 21st century
-	local visualStyleChoices = { "❤", "↖", "🐻", "🦆", "😺", "🎃", "🌈", "⭐", "🤔", "🌀" }
-	local visualStyleValues  = { "Hearts", "Arrows", "Bears", "Ducks", "Cats", "Spooky", "Gay", "Stars", "Thonk", "Technique" }
+	local visualStyleChoices = { "❤", "↖", "🐻", "🦆", "😺", "🎃", "🌈", "⭐", "🤔", "🌀", "🌬" }
+	local visualStyleValues  = { "Hearts", "Arrows", "Bears", "Ducks", "Cats", "Spooky", "Gay", "Stars", "Thonk", "Technique", "Meme" }
 
 	local year = Year()
 	local month = MonthOfYear()+1
 	local day = DayOfMonth()
 	local today = year * 10000 + month * 100 + day
 
-	if today >= 20230620 then
-		visualStyleChoices[#visualStyleChoices+1] = "😈"
-		visualStyleValues[#visualStyleValues+1] = "SRPG7"
-	else
-		local prefs = IniFile.ReadFile("/Save/ThemePrefs.ini")
-		local theme = PREFSMAN:GetPreference("Theme")
-		local lastActiveEvent = nil
-		if prefs[theme] and prefs[theme].LastActiveEvent == "SRPG7" then
-			visualStyleChoices[#visualStyleChoices+1] = "😈"
-			visualStyleValues[#visualStyleValues+1] = "SRPG7"
-		end
-	end
+	local prefs = IniFile.ReadFile("/Save/ThemePrefs.ini")
+	local theme = PREFSMAN:GetPreference("Theme")
+	local lastActiveEvent = nil
 
 	return {
 		AllowFailingOutOfSet =
@@ -124,6 +115,11 @@ SL_CustomPrefs.Get = function()
 			Default = true,
 			Choices = { THEME:GetString("ThemePrefs","Yes"), THEME:GetString("ThemePrefs", "No") },
 			Values  = { true, false }
+		},
+		RescoreEarlyHits = {
+			Default = true,
+			Choices =  { THEME:GetString("ThemePrefs","Yes"), THEME:GetString("ThemePrefs", "No") },
+			Values	= { true, false }
 		},
 		-- - - - - - - - - - - - - - - - - - - -
 		-- SimplyLoveColor saves the theme color for the next time
@@ -272,6 +268,24 @@ SL_CustomPrefs.Get = function()
 
 		EnforceNoCmod = {
 			Default = true,
+			Choices =  { THEME:GetString("ThemePrefs","Yes"), THEME:GetString("ThemePrefs", "No") },
+			Values  = { true, false }
+		},
+		-- - - - - - - - - - - - - - - - - - - -
+		EnableGrooveStats = {
+			Default = false,
+			Choices =  { THEME:GetString("ThemePrefs","Yes"), THEME:GetString("ThemePrefs", "No") },
+			Values  = { true, false }
+		},
+
+		AutoDownloadUnlocks = {
+			Default = false,
+			Choices =  { THEME:GetString("ThemePrefs","Yes"), THEME:GetString("ThemePrefs", "No") },
+			Values  = { true, false }
+		},
+
+		SeparateUnlocksByPlayer = {
+			Default = false,
 			Choices =  { THEME:GetString("ThemePrefs","Yes"), THEME:GetString("ThemePrefs", "No") },
 			Values  = { true, false }
 		},
